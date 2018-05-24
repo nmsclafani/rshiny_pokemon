@@ -1,0 +1,170 @@
+---
+title: "Nick's Graph's"
+author: "Nicholas Sclafani"
+date: "5/1/2018"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(plotly)
+library(shiny)
+poke <- read.csv("Pokemon.csv")
+```
+
+side by side bar plot of each type through generations 
+	select types (buttons) and stat (drop down menu)
+	x axis shows generation
+	y axis shows stat
+	different bars for all types selected
+	
+```{r}
+poke_type_gen <- poke %>% group_by(Type.1, Generation) %>%
+  summarise(Total = mean(Total),
+            HP = mean(HP),
+            Attack = mean(Attack),
+            Defense = mean(Defense),
+            Sp..Atk = mean(Sp..Atk),
+            Sp..Def = mean(Sp..Def),
+            Speed = mean(Speed))
+#poke_type_gen
+
+poke_theme <- scale_fill_manual(values = c("Grass" = "darkolivegreen2", 
+"Fire" = "darkorange1", 
+"Water" = "dodgerblue1", 
+"Bug" = "darkolivegreen3", 
+"Normal" = "cornsilk3", 
+"Poison" = "darkmagenta", 
+"Electric" = "gold1", 
+"Ground" = "burlywood2", 
+"Fairy" = "lightpink1", 
+"Fighting" = "brown", 
+"Psychic" = "deeppink", 
+"Rock" = "goldenrod4", 
+"Ghost" = "darkviolet", 
+"Ice" = "darkslategray1", 
+"Dragon" = "darkslateblue", 
+"Dark" = "chocolate4", 
+"Steel" = "azure3", 
+"Flying" = "mediumpurple1"))
+```
+	
+	
+```{r}
+colors = data.frame(type = unique(poke$Type.1), 
+                    color = c("darkolivegreen2", "darkorange1", "dodgerblue1", 
+                              "darkolivegreen3", "cornsilk3", "darkmagenta", 
+                              "gold1", "burlywood2", "lightpink1", "brown", 
+                              "deeppink", "goldenrod4", "darkviolet", 
+                              "darkslategray1", "darkslateblue", "chocolate4", 
+                              "azure3", "mediumpurple1"))
+
+stat_choices = c("Total Points" = "Total", "Health Points" = "HP", 
+                 "Attack Points" = "Attack", 
+                 "Defense Points" = "Defense", "Attack Speed" = "Sp..Atk", 
+                 "Defense Speed" = "Sp..Def", "Speed" = "Speed")
+
+
+# use color theme 
+shinyApp(
+  
+  ui = fluidPage(
+    inputPanel(
+      checkboxGroupInput("type", label = "Type:",
+                   choices = c("Grass", "Fire", "Water", "Bug", "Normal", 
+                               "Poison", "Electric", "Ground", "Fairy", 
+                               "Fighting", "Psychic", "Rock", "Ghost", "Ice", 
+                               "Dragon", "Dark", "Steel", "Flying"), 
+                   selected = c("Grass", "Fire", "Water"),
+                   inline = TRUE),
+  
+      selectInput("stat", label = "Statistic:", choices = stat_choices)
+    ),
+    
+    plotlyOutput("poke_plot")
+  ),
+  server = function(input, output) {
+    output$poke_plot <- renderPlotly({
+
+      type_df <- poke_type_gen[which(poke_type_gen$Type.1 %in% input$type),]
+
+      p2 <- ggplot(type_df, aes_string(x = "Generation", y = input$stat, color = "Type.1")) + 
+        #geom_bar(stat = "identity", pos = "dodge") + 
+        geom_point() + geom_line() +
+        poke_theme +
+        labs(title = "Generational Changes of Average Point Values for Pokemon Types",
+             color = "Type")
+      ggplotly(p2)
+      
+    })
+  },
+  
+  options = list(height = 550)
+)
+```
+
+```{r}
+ggplot(poke_type_gen, aes_string(x = "Generation", y = "HP", fill = "Type.1")) + 
+        geom_bar(stat = "identity", pos = "dodge") 
+
+```
+
+
+
+
+Scatterplot of 2 variables
+	Select 2 variables (drop down) and types (buttons)
+	X axis shows var 1, y axis shows var 2
+	Point colored/shaped by type
+  Using rbokeh
+  
+```{r}
+shinyApp(
+  
+  ui = fluidPage(
+    inputPanel(
+      checkboxGroupInput("type", label = "Type:",
+                   choices = c("Grass", "Fire", "Water", "Bug", "Normal", 
+                               "Poison", "Electric", "Ground", "Fairy", 
+                               "Fighting", "Psychic", "Rock", "Ghost", "Ice", 
+                               "Dragon", "Dark", "Steel", "Flying"), 
+                   selected = c("Grass", "Bug", "Poison"),
+                   inline = TRUE),
+      checkboxGroupInput("generation", label = "Generation:",
+                         choices = 1:6,
+                         selected = 4:6),
+  
+      selectInput("stat1", label = "Statistic 1:", choices = stat_choices,
+                  selected = "Attack"),
+      selectInput("stat2", label = "Statistic 2:", choices = stat_choices,
+                  selected = "Defense")
+    ),
+    
+    plotlyOutput("poke_plot")
+  ),
+  server = function(input, output) {
+    output$poke_plot <- renderPlotly({
+
+      types_df <- poke[which(poke$Type.1 %in% input$type),]
+      types_df <- types_df[which(types_df$Generation %in% input$generation),]
+
+      print(input$stat)
+      p2 <- ggplot(types_df, aes_string(x = input$stat1, y = input$stat2, color = "Type.1")) + 
+        geom_point() + poke_theme + 
+        labs(title = "Pokemon Trait Comparisons",
+             color = "Type")
+      ggplotly(p2)
+      
+    })
+  },
+  
+  options = list(height = 550)
+)
+```
+  
+  
